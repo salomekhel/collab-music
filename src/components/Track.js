@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
+import MicrophonePlugin from 'wavesurfer.js/src/plugin/microphone'; // Import Microphone Plugin
 import './Track.css';
 
 const getRandomColor = () => {
@@ -7,20 +8,22 @@ const getRandomColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloing }) => {
+const Track = ({ trackName, onDelete }) => {
   const [volume, setVolume] = useState(0.5);
   const [pan, setPan] = useState(0);
-  const [bpm, setBpm] = useState(120);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [waveform, setWaveform] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
   const waveformRef = useRef(null);
+  const mediaRecorderRef = useRef(null);  // MediaRecorder reference
+  const recordedChunks = useRef([]);  // Store the recorded audio chunks
+  const [waveform, setWaveform] = useState(null);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editableTitle, setEditableTitle] = useState(trackName);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [color, setColor] = useState(getRandomColor());
 
   useEffect(() => {
+    // Initialize WaveSurfer with Microphone Plugin for live input
     const wavesurfer = WaveSurfer.create({
       container: waveformRef.current,
       waveColor: '#ddd',
@@ -28,7 +31,11 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
       height: 80,
       responsive: true,
       barWidth: 2,
+      plugins: [
+        MicrophonePlugin.create()  // Add the microphone plugin
+      ]
     });
+
     setWaveform(wavesurfer);
 
     return () => {
@@ -36,6 +43,55 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     };
   }, [color]);
 
+  // Start recording and display live waveform
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      recordedChunks.current = [];  // Clear recorded chunks
+
+      // Start the live microphone plugin
+      if (waveform && waveform.microphone) {
+        waveform.microphone.start();
+      }
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.current.push(event.data);  // Push audio data to recorded chunks
+        }
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Error accessing microphone:', err);
+    }
+  };
+
+  // Stop recording and load into WaveSurfer
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(recordedChunks.current, { type: 'audio/wav' });
+        const audioURL = URL.createObjectURL(audioBlob);
+
+        if (waveform) {
+          waveform.load(audioURL);  // Load recorded audio into WaveSurfer for playback
+        }
+      };
+
+      // Stop the live microphone feed
+      if (waveform && waveform.microphone) {
+        waveform.microphone.stop();
+      }
+
+      setIsRecording(false);
+    }
+  };
+
+  // Handle play/pause functionality
   const handlePlayPause = () => {
     if (isPlaying) {
       waveform.pause();
@@ -46,6 +102,7 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     }
   };
 
+  // Volume control
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
@@ -54,73 +111,14 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     }
   };
 
+  // Pan control
   const handlePanChange = (e) => {
     const newPan = parseFloat(e.target.value);
     setPan(newPan);
   };
 
-  const handleBpmChange = (e) => {
-    const newBpm = parseFloat(e.target.value);
-    setBpm(newBpm);
-    if (waveform) {
-      const playbackRate = newBpm / 120;
-      waveform.setPlaybackRate(playbackRate);
-    }
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    loadAudio(file);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    loadAudio(file);
-  };
-
-  const loadAudio = (file) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        waveform.load(event.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (waveform) {
-      if (isMuted) {
-        waveform.setVolume(volume);
-      } else {
-        waveform.setVolume(0);
-      }
-    }
-  };
-
-  const toggleSolo = () => {
-    if (!isSoloing) {
-      setSoloTrack(editableTitle);
-    } else {
-      setSoloTrack(null);
-    }
-  };
-
-  // Save the edited title
-  const handleTitleSave = () => {
-    setIsEditingTitle(false);
-  };
-
-  // Cancel editing and revert title
-  const handleTitleCancel = () => {
-    setEditableTitle(trackName);
-    setIsEditingTitle(false);
-  };
-
   return (
-    <div className="track" style={{ backgroundColor: color }} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+    <div className="track" style={{ backgroundColor: color }} onDrop={(e) => e.preventDefault()} onDragOver={(e) => e.preventDefault()}>
       <div className="track-header">
         {isEditingTitle ? (
           <div className="title-edit">
@@ -130,15 +128,11 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
               onChange={(e) => setEditableTitle(e.target.value)}
               autoFocus
             />
-            <button onClick={handleTitleSave} className="title-save">Save</button>
-            <button onClick={handleTitleCancel} className="title-cancel">Cancel</button>
+            <button onClick={() => setIsEditingTitle(false)} className="title-save">Save</button>
+            <button onClick={() => setIsEditingTitle(false)} className="title-cancel">Cancel</button>
           </div>
         ) : (
-          <h3
-            onClick={() => setIsEditingTitle(true)}
-            className="track-title"
-            style={{ cursor: 'pointer' }}
-          >
+          <h3 onClick={() => setIsEditingTitle(true)} className="track-title" style={{ cursor: 'pointer' }}>
             {editableTitle}
           </h3>
         )}
@@ -148,7 +142,6 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
         <button onClick={handlePlayPause} className="play-button">
           {isPlaying ? 'Pause' : 'Play'}
         </button>
-        <input type="file" onChange={handleFileUpload} accept="audio/*" />
 
         <div className="track-volume-pan">
           <label>Volume: </label>
@@ -170,40 +163,33 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
             onChange={handlePanChange}
           />
         </div>
-
-        <div className="track-bpm">
-          <label>BPM: {bpm}</label>
-          <input
-            type="range"
-            min="60"
-            max="180"
-            step="1"
-            value={bpm}
-            onChange={handleBpmChange}
-          />
-        </div>
       </div>
 
       <div className="track-actions">
-        <button onClick={toggleMute} className={isMuted ? 'mute-on' : 'mute-off'}>
-          {isMuted ? 'Unmute' : 'Mute'}
-        </button>
-        <button onClick={toggleSolo} className={isSoloing ? 'solo-on' : 'solo-off'}>
-          {isSoloing ? 'Unsolo' : 'Solo'}
-        </button>
         <button onClick={onDelete} className="delete-button">
           Delete Track
         </button>
       </div>
 
-      <div className="track-waveform" ref={waveformRef}>
-        {/* WaveSurfer.js will automatically fill this div with the waveform */}
+      <div className="track-waveform" ref={waveformRef}></div>
+
+      <div className="recording-controls">
+        <button onClick={startRecording} disabled={isRecording} className="record-button">
+          Start Recording
+        </button>
+        <button onClick={stopRecording} disabled={!isRecording} className="stop-recording-button">
+          Stop Recording
+        </button>
       </div>
     </div>
   );
 };
 
 export default Track;
+
+
+
+
 
 
 

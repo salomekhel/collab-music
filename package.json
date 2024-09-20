@@ -14,7 +14,7 @@
     "react-knob": "^0.1.0",
     "react-scripts": "5.0.1",
     "tone": "^15.0.4",
-    "wavesurfer.js": "^7.8.6",
+    "wavesurfer.js": "^6.6.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

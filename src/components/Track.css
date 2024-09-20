@@ -10,31 +10,31 @@
     position: relative;
     width: 100%;  /* Ensure the track width is 100% */
     box-sizing: border-box;
-}
-
-.track-header h3 {
+  }
+  
+  .track-header h3 {
     margin: 0;
     font-size: 18px;
     cursor: pointer;
     font-weight: bold;
     color: #333;
     transition: color 0.2s ease;
-}
-
-.track-header h3:hover {
+  }
+  
+  .track-header h3:hover {
     color: #007BFF;  /* Add hover effect to change color */
-}
-
-.title-edit input {
+  }
+  
+  .title-edit input {
     font-size: 1.2em;
     padding: 5px;
     margin-right: 5px;
     border-radius: 5px;
     border: 1px solid #ccc;
-}
-
-.title-save,
-.title-cancel {
+  }
+  
+  .title-save,
+  .title-cancel {
     background-color: #007BFF;
     color: white;
     border: none;
@@ -42,90 +42,134 @@
     margin-left: 5px;
     border-radius: 5px;
     cursor: pointer;
-}
-
-.title-cancel {
+  }
+  
+  .title-cancel {
     background-color: #ff4444;
-}
-
-.title-save:hover,
-.title-cancel:hover {
+  }
+  
+  .title-save:hover,
+  .title-cancel:hover {
     opacity: 0.8;
-}
-
-.track-controls {
+  }
+  
+  .track-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin: 10px 0;
-}
-
-.track-volume-pan {
+  }
+  
+  .track-volume-pan {
     display: flex;
     align-items: center;
-}
-
-.track-volume-pan input {
+  }
+  
+  .track-volume-pan input {
     margin: 0 10px;
-}
-
-.track-actions {
+  }
+  
+  .track-actions {
     display: flex;
     justify-content: flex-end;
     margin-top: 10px;
-}
-
-.play-button,
-.mute-on,
-.mute-off,
-.solo-on,
-.solo-off,
-.delete-button {
+  }
+  
+  .play-button,
+  .mute-on,
+  .mute-off,
+  .solo-on,
+  .solo-off,
+  .delete-button {
     padding: 5px 10px;
     border-radius: 4px;
     margin-left: 5px;
     cursor: pointer;
-}
-
-.mute-on {
+  }
+  
+  .mute-on {
     background-color: #ff6666;
-}
-
-.mute-off {
+  }
+  
+  .mute-off {
     background-color: #66ff66;
-}
-
-.solo-on {
+  }
+  
+  .solo-on {
     background-color: #ffcc00;
-}
-
-.solo-off {
+  }
+  
+  .solo-off {
     background-color: #6699ff;
-}
-
-.delete-button {
+  }
+  
+  .delete-button {
     background-color: #ff3333;
     color: white;
-}
-
-.track-waveform {
+  }
+  
+  .track-waveform {
     height: 80px;
     margin-top: 10px;
     border-radius: 4px;
     position: relative;
     width: 100%;
     overflow: hidden;
-}
-
-.track-bpm {
+  }
+  
+  .track-bpm {
     display: flex;
     align-items: center;
     margin-left: 10px;
-}
-
-.track-bpm input {
+  }
+  
+  .track-bpm input {
     margin-left: 10px;
     width: 100px;
-}
+  }
+  
+  /* Recording controls */
+  .recording-controls {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  
+  .record-button,
+  .stop-recording-button {
+    padding: 5px 10px;
+    margin-right: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+  }
+  
+  .record-button {
+    background-color: #ff4444;
+    color: white;
+  }
+  
+  .record-button:disabled {
+    background-color: #ff8888;
+    cursor: not-allowed;
+  }
+  
+  .stop-recording-button {
+    background-color: #66cc66;
+    color: white;
+  }
+  
+  .stop-recording-button:disabled {
+    background-color: #aaffaa;
+    cursor: not-allowed;
+  }
+  
+  
+  
+  
+  
+  
+  
+  
 
   
