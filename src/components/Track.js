@@ -12,6 +12,7 @@ const Track = ({ trackName, onDelete }) => {
   const [volume, setVolume] = useState(0.5);
   const [pan, setPan] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [bpm, setBpm] = useState(120);  // BPM slider state (default 120 BPM)
   const [isRecording, setIsRecording] = useState(false);
   const waveformRef = useRef(null);
   const mediaRecorderRef = useRef(null);  // MediaRecorder reference
@@ -117,8 +118,49 @@ const Track = ({ trackName, onDelete }) => {
     setPan(newPan);
   };
 
+  // Handle BPM change
+  const handleBpmChange = (e) => {
+    const newBpm = parseFloat(e.target.value);
+    setBpm(newBpm);
+
+    // Update the playback rate based on BPM (120 BPM as the base)
+    const playbackRate = newBpm / 120;  // For example, if BPM is 240, playback rate is 2x
+    if (waveform) {
+      waveform.setPlaybackRate(playbackRate);
+    }
+  };
+
+  // Handle file upload for audio
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (waveform) {
+          waveform.load(event.target.result);  // Load audio file into WaveSurfer
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle drag and drop audio file
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (waveform) {
+          waveform.load(event.target.result);  // Load dropped audio file into WaveSurfer
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="track" style={{ backgroundColor: color }} onDrop={(e) => e.preventDefault()} onDragOver={(e) => e.preventDefault()}>
+    <div className="track" style={{ backgroundColor: color }} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       <div className="track-header">
         {isEditingTitle ? (
           <div className="title-edit">
@@ -165,6 +207,24 @@ const Track = ({ trackName, onDelete }) => {
         </div>
       </div>
 
+      {/* BPM Slider */}
+      <div className="track-bpm">
+        <label>BPM: {bpm}</label>
+        <input
+          type="range"
+          min="60"
+          max="180"
+          step="1"
+          value={bpm}
+          onChange={handleBpmChange}
+        />
+      </div>
+
+      {/* File Upload */}
+      <div className="file-upload">
+        <input type="file" onChange={handleFileUpload} accept="audio/*" />
+      </div>
+
       <div className="track-actions">
         <button onClick={onDelete} className="delete-button">
           Delete Track
@@ -186,6 +246,7 @@ const Track = ({ trackName, onDelete }) => {
 };
 
 export default Track;
+
 
 
 
