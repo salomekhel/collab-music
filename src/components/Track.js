@@ -1,98 +1,110 @@
-import React, { useState, useEffect } from 'react';
-import * as Tone from 'tone';
+import React, { useState, useEffect, useRef } from 'react';
+import WaveSurfer from 'wavesurfer.js';
+import './Track.css';
 
-const Track = ({ trackName, color, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloing }) => {
+const getRandomColor = () => {
+  const colors = ['#FFA07A', '#20B2AA', '#9370DB', '#FF6347', '#4682B4', '#7B68EE', '#EE82EE', '#FF4500'];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
+
+const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloing }) => {
   const [volume, setVolume] = useState(0.5);  // Volume slider state
   const [pan, setPan] = useState(0);  // Pan slider state
   const [isPlaying, setIsPlaying] = useState(false);  // Play/Pause state
   const [isMuted, setIsMuted] = useState(false);  // Mute state
-  const [player, setPlayer] = useState(null);  // Tone.js Player
+  const [waveform, setWaveform] = useState(null);  // Store the WaveSurfer instance
+  const waveformRef = useRef(null);  // Reference to the waveform container
+
   const [isEditingTitle, setIsEditingTitle] = useState(false);  // Track if we're editing the title
   const [editableTitle, setEditableTitle] = useState(trackName);  // Local state for the editable title
+  const [color, setColor] = useState(getRandomColor());
 
-  // Initialize the audio player, gain (volume), and panner (pan) when the component mounts
   useEffect(() => {
-    const newPlayer = new Tone.Player().toDestination();
-    const newPanner = new Tone.Panner(pan).toDestination();
+    const wavesurfer = WaveSurfer.create({
+      container: waveformRef.current,
+      waveColor: '#ddd',
+      progressColor: color,
+      height: 80,
+      responsive: true,
+      barWidth: 2,
+    });
+    setWaveform(wavesurfer);
 
-    // Connect the player to panner and output
-    newPlayer.connect(newPanner);
+    return () => {
+      if (wavesurfer) wavesurfer.destroy();  // Clean up WaveSurfer on unmount
+    };
+  }, [color]);
 
-    setPlayer(newPlayer);
-  }, []);
-
-  // Handle play and pause
   const handlePlayPause = () => {
     if (isPlaying) {
-      player.stop();
+      waveform.pause();  // Use WaveSurfer for playback
       setIsPlaying(false);
     } else {
-      player.start();
+      waveform.play();
       setIsPlaying(true);
     }
   };
 
-  // Adjust volume based on slider
   const handleVolumeChange = (e) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (player) {
-      player.volume.value = Tone.gainToDb(newVolume);  // Convert gain value to decibels
+    if (waveform) {
+      waveform.setVolume(newVolume);  // Set volume directly in WaveSurfer
     }
   };
 
-  // Adjust pan based on slider
   const handlePanChange = (e) => {
     const newPan = parseFloat(e.target.value);
     setPan(newPan);
-    if (player) {
-      player.pan.value = newPan;
-    }
+    // Tone.js Panning control (optional)
+    // If you want to integrate Tone.js panning back, use Tone.js Player alongside
   };
 
-  // File upload for audio track
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
+    loadAudio(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    loadAudio(file);
+  };
+
+  const loadAudio = (file) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        if (player) {
-          player.load(event.target.result);
-        }
+        waveform.load(event.target.result);  // Load the audio file into WaveSurfer
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Toggle mute functionality using player.mute
+  // Updated mute functionality
   const toggleMute = () => {
     setIsMuted(!isMuted);
-    if (player) {
-      player.mute = !isMuted;  // Use Tone.Player's built-in mute property
+    if (waveform) {
+      if (isMuted) {
+        waveform.setVolume(volume);  // Restore the volume when unmuted
+      } else {
+        waveform.setVolume(0);  // Mute by setting volume to 0
+      }
     }
   };
 
-  // Handle solo functionality
   const toggleSolo = () => {
     if (!isSoloing) {
-      setSoloTrack(editableTitle);  // Set the soloing track
+      setSoloTrack(editableTitle);
     } else {
-      setSoloTrack(null);  // Disable solo
+      setSoloTrack(null);
     }
   };
 
-  useEffect(() => {
-    if (player) {
-      player.mute = isMuted || isOtherTrackSoloing;  // Mute the player if muted or another track is soloing
-    }
-  }, [isMuted, isOtherTrackSoloing, player]);
-
-  // Handle title edit start (clicking on the title)
   const handleTitleClick = () => {
     setIsEditingTitle(true);
   };
 
-  // Handle saving the new title (onBlur or Enter key)
   const handleTitleSave = (e) => {
     if (e.type === 'blur' || (e.type === 'keydown' && e.key === 'Enter')) {
       setIsEditingTitle(false);
@@ -100,65 +112,74 @@ const Track = ({ trackName, color, onDelete, isSoloing, setSoloTrack, isOtherTra
   };
 
   return (
-    <div className="track" style={{ backgroundColor: color, padding: '10px', marginBottom: '10px', borderRadius: '5px' }}>
-      {/* Editable Track Title */}
-      {isEditingTitle ? (
-        <input
-          type="text"
-          value={editableTitle}
-          onChange={(e) => setEditableTitle(e.target.value)}
-          onBlur={handleTitleSave}
-          onKeyDown={handleTitleSave}
-          autoFocus
-        />
-      ) : (
-        <h3 onClick={handleTitleClick} style={{ cursor: 'pointer' }}>{editableTitle}</h3>
-      )}
+    <div className="track" style={{ backgroundColor: color }} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
+      <div className="track-header">
+        {isEditingTitle ? (
+          <input
+            type="text"
+            value={editableTitle}
+            onChange={(e) => setEditableTitle(e.target.value)}
+            onBlur={handleTitleSave}
+            onKeyDown={handleTitleSave}
+            autoFocus
+          />
+        ) : (
+          <h3 onClick={handleTitleClick} style={{ cursor: 'pointer' }}>{editableTitle}</h3>
+        )}
+      </div>
 
-      <div>
-        <label>Volume: </label>
-        <input 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.01" 
-          value={volume} 
-          onChange={handleVolumeChange}
-        />
-      </div>
-      <div>
-        <label>Pan: </label>
-        <input
-          type="range"
-          min="-1"
-          max="1"
-          step="0.1"
-          value={pan}
-          onChange={handlePanChange}
-        />
-      </div>
-      <div>
-        <button onClick={handlePlayPause}>
+      <div className="track-controls">
+        <button onClick={handlePlayPause} className="play-button">
           {isPlaying ? 'Pause' : 'Play'}
         </button>
         <input type="file" onChange={handleFileUpload} accept="audio/*" />
+        <div className="track-volume-pan">
+          <label>Volume: </label>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01" 
+            value={volume} 
+            onChange={handleVolumeChange}
+          />
+          <label>Pan: </label>
+          <input
+            type="range"
+            min="-1"
+            max="1"
+            step="0.1"
+            value={pan}
+            onChange={handlePanChange}
+          />
+        </div>
       </div>
-      <div>
-        <button onClick={toggleMute} style={{ marginTop: '10px', backgroundColor: isMuted ? 'gray' : 'green', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px' }}>
+
+      <div className="track-actions">
+        <button onClick={toggleMute} className={isMuted ? 'mute-on' : 'mute-off'}>
           {isMuted ? 'Unmute' : 'Mute'}
         </button>
-        <button onClick={toggleSolo} style={{ marginTop: '10px', backgroundColor: isSoloing ? 'orange' : 'blue', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px', marginLeft: '10px' }}>
+        <button onClick={toggleSolo} className={isSoloing ? 'solo-on' : 'solo-off'}>
           {isSoloing ? 'Unsolo' : 'Solo'}
         </button>
-        <button onClick={onDelete} style={{ marginTop: '10px', backgroundColor: 'red', color: 'white', padding: '5px 10px', border: 'none', borderRadius: '5px', marginLeft: '10px' }}>
+        <button onClick={onDelete} className="delete-button">
           Delete Track
         </button>
+      </div>
+
+      <div className="track-waveform" ref={waveformRef}>
+        {/* WaveSurfer.js will automatically fill this div with the waveform */}
       </div>
     </div>
   );
 };
 
 export default Track;
+
+
+
+
+
 
 
 
