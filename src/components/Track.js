@@ -10,6 +10,7 @@ const getRandomColor = () => {
 const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloing }) => {
   const [volume, setVolume] = useState(0.5);  // Volume slider state
   const [pan, setPan] = useState(0);  // Pan slider state
+  const [bpm, setBpm] = useState(120);  // BPM state (default 120 BPM)
   const [isPlaying, setIsPlaying] = useState(false);  // Play/Pause state
   const [isMuted, setIsMuted] = useState(false);  // Mute state
   const [waveform, setWaveform] = useState(null);  // Store the WaveSurfer instance
@@ -56,8 +57,15 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
   const handlePanChange = (e) => {
     const newPan = parseFloat(e.target.value);
     setPan(newPan);
-    // Tone.js Panning control (optional)
-    // If you want to integrate Tone.js panning back, use Tone.js Player alongside
+  };
+
+  const handleBpmChange = (e) => {
+    const newBpm = parseFloat(e.target.value);
+    setBpm(newBpm);
+    if (waveform) {
+      const playbackRate = newBpm / 120;  // Calculate playback rate based on BPM (120 BPM as base)
+      waveform.setPlaybackRate(playbackRate);  // Change the playback rate in WaveSurfer
+    }
   };
 
   const handleFileUpload = (e) => {
@@ -81,7 +89,6 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     }
   };
 
-  // Updated mute functionality
   const toggleMute = () => {
     setIsMuted(!isMuted);
     if (waveform) {
@@ -133,6 +140,7 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
           {isPlaying ? 'Pause' : 'Play'}
         </button>
         <input type="file" onChange={handleFileUpload} accept="audio/*" />
+
         <div className="track-volume-pan">
           <label>Volume: </label>
           <input 
@@ -151,6 +159,18 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
             step="0.1"
             value={pan}
             onChange={handlePanChange}
+          />
+        </div>
+
+        <div className="track-bpm">
+          <label>BPM: {bpm}</label>
+          <input 
+            type="range" 
+            min="60" 
+            max="180" 
+            step="1" 
+            value={bpm} 
+            onChange={handleBpmChange}
           />
         </div>
       </div>

@@ -82,3 +82,14 @@
     overflow: hidden;
   }
   
+.track-bpm {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+  }
+  
+  .track-bpm input {
+    margin-left: 10px;
+    width: 100px;
+  }
+  
