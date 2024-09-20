@@ -8,16 +8,16 @@ const getRandomColor = () => {
 };
 
 const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloing }) => {
-  const [volume, setVolume] = useState(0.5);  // Volume slider state
-  const [pan, setPan] = useState(0);  // Pan slider state
-  const [bpm, setBpm] = useState(120);  // BPM state (default 120 BPM)
-  const [isPlaying, setIsPlaying] = useState(false);  // Play/Pause state
-  const [isMuted, setIsMuted] = useState(false);  // Mute state
-  const [waveform, setWaveform] = useState(null);  // Store the WaveSurfer instance
-  const waveformRef = useRef(null);  // Reference to the waveform container
+  const [volume, setVolume] = useState(0.5);
+  const [pan, setPan] = useState(0);
+  const [bpm, setBpm] = useState(120);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [waveform, setWaveform] = useState(null);
+  const waveformRef = useRef(null);
 
-  const [isEditingTitle, setIsEditingTitle] = useState(false);  // Track if we're editing the title
-  const [editableTitle, setEditableTitle] = useState(trackName);  // Local state for the editable title
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editableTitle, setEditableTitle] = useState(trackName);
   const [color, setColor] = useState(getRandomColor());
 
   useEffect(() => {
@@ -32,13 +32,13 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     setWaveform(wavesurfer);
 
     return () => {
-      if (wavesurfer) wavesurfer.destroy();  // Clean up WaveSurfer on unmount
+      if (wavesurfer) wavesurfer.destroy();
     };
   }, [color]);
 
   const handlePlayPause = () => {
     if (isPlaying) {
-      waveform.pause();  // Use WaveSurfer for playback
+      waveform.pause();
       setIsPlaying(false);
     } else {
       waveform.play();
@@ -50,7 +50,7 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
     if (waveform) {
-      waveform.setVolume(newVolume);  // Set volume directly in WaveSurfer
+      waveform.setVolume(newVolume);
     }
   };
 
@@ -63,8 +63,8 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     const newBpm = parseFloat(e.target.value);
     setBpm(newBpm);
     if (waveform) {
-      const playbackRate = newBpm / 120;  // Calculate playback rate based on BPM (120 BPM as base)
-      waveform.setPlaybackRate(playbackRate);  // Change the playback rate in WaveSurfer
+      const playbackRate = newBpm / 120;
+      waveform.setPlaybackRate(playbackRate);
     }
   };
 
@@ -83,7 +83,7 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        waveform.load(event.target.result);  // Load the audio file into WaveSurfer
+        waveform.load(event.target.result);
       };
       reader.readAsDataURL(file);
     }
@@ -93,9 +93,9 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     setIsMuted(!isMuted);
     if (waveform) {
       if (isMuted) {
-        waveform.setVolume(volume);  // Restore the volume when unmuted
+        waveform.setVolume(volume);
       } else {
-        waveform.setVolume(0);  // Mute by setting volume to 0
+        waveform.setVolume(0);
       }
     }
   };
@@ -108,30 +108,39 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
     }
   };
 
-  const handleTitleClick = () => {
-    setIsEditingTitle(true);
+  // Save the edited title
+  const handleTitleSave = () => {
+    setIsEditingTitle(false);
   };
 
-  const handleTitleSave = (e) => {
-    if (e.type === 'blur' || (e.type === 'keydown' && e.key === 'Enter')) {
-      setIsEditingTitle(false);
-    }
+  // Cancel editing and revert title
+  const handleTitleCancel = () => {
+    setEditableTitle(trackName);
+    setIsEditingTitle(false);
   };
 
   return (
     <div className="track" style={{ backgroundColor: color }} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       <div className="track-header">
         {isEditingTitle ? (
-          <input
-            type="text"
-            value={editableTitle}
-            onChange={(e) => setEditableTitle(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={handleTitleSave}
-            autoFocus
-          />
+          <div className="title-edit">
+            <input
+              type="text"
+              value={editableTitle}
+              onChange={(e) => setEditableTitle(e.target.value)}
+              autoFocus
+            />
+            <button onClick={handleTitleSave} className="title-save">Save</button>
+            <button onClick={handleTitleCancel} className="title-cancel">Cancel</button>
+          </div>
         ) : (
-          <h3 onClick={handleTitleClick} style={{ cursor: 'pointer' }}>{editableTitle}</h3>
+          <h3
+            onClick={() => setIsEditingTitle(true)}
+            className="track-title"
+            style={{ cursor: 'pointer' }}
+          >
+            {editableTitle}
+          </h3>
         )}
       </div>
 
@@ -143,12 +152,12 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
 
         <div className="track-volume-pan">
           <label>Volume: </label>
-          <input 
-            type="range" 
-            min="0" 
-            max="1" 
-            step="0.01" 
-            value={volume} 
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
             onChange={handleVolumeChange}
           />
           <label>Pan: </label>
@@ -164,12 +173,12 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
 
         <div className="track-bpm">
           <label>BPM: {bpm}</label>
-          <input 
-            type="range" 
-            min="60" 
-            max="180" 
-            step="1" 
-            value={bpm} 
+          <input
+            type="range"
+            min="60"
+            max="180"
+            step="1"
+            value={bpm}
             onChange={handleBpmChange}
           />
         </div>
@@ -195,6 +204,7 @@ const Track = ({ trackName, onDelete, isSoloing, setSoloTrack, isOtherTrackSoloi
 };
 
 export default Track;
+
 
 
 
